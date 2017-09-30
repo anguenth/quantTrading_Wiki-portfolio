@@ -1,0 +1,233 @@
+---
+title: "wiki4"
+output: html_document
+---
+
+
+```{r}
+
+refreshData <- TRUE
+
+```
+
+
+```{r}
+
+
+read.wiki <- function (wikiSymbol) {
+     
+     require(magrittr)
+     require(xts)
+     
+     today <- paste0(
+          strsplit(as.character(Sys.Date()), "-")[[1]][3], ".",
+          strsplit(as.character(Sys.Date()), "-")[[1]][2], ".",
+          strsplit(as.character(Sys.Date()), "-")[[1]][1])
+                         
+     URL <- paste0("https://www.wikifolio.com/dynamic/de/de/invest/download?type=daily&name=", 
+                    wikiSymbol, "&dateFrom=01.01.2010&dateTo=", today)
+
+     tmp <- tempfile()
+     download.file(URL, destfile=tmp, method="libcurl")
+     histData <- read.csv2(tmp, fileEncoding=c("UCS-4-INTERNAL"), skip=5, sep=";",
+                           col.names = c("Date", "Interval", "Op", "Cl", "Hi", "Lo"))
+     unlink(tmp)
+     
+     histData$Date %<>% lubridate::dmy_hms() 
+     histData <- histData[,-2] 
+     histData <- histData[ , c("Date", "Op", "Hi", "Lo", "Cl")]
+     histData <- as.xts(histData[, -1], order.by=histData[, 1])
+     
+     return(histData)
+}
+
+```
+
+
+```{r}
+
+# ----------------------------------------------------------------------------------------------
+#
+# Download data from Wikifolio
+#
+# ----------------------------------------------------------------------------------------------
+
+if (refreshData = TRUE) {
+     
+     #read list containing Wikifolios (Name, ISIN, Symbol)
+     setwd("/Users/home/Documents/Finanzen/R.investment/portfolio/wiki4_dach/")
+     wiki4List <- read.csv2("./wiki4_wikiList.csv", 
+                            sep=",", colClasses = c(rep("character", 3)))
+     
+     #create short Wiki symbols for downloading
+     wiki4List$Symbol.short <- sapply(strsplit(wiki4List$Symbol, "WF[0]{0,4}"), "[", 2)
+     
+     #the only one where 0 remains in symbol name
+     wiki4List$Symbol.short[grep("SWING", wiki4List$Symbol.short)] <- "0SWING"
+     
+     #download and save
+     histDataList <- lapply(wiki4List$Symbol.short, read.wiki)
+     names(histDataList) <- wiki4List$Symbol
+     
+     saveRDS(histDataList, file = paste0("./#rawData/", Sys.Date(), "_", "histDataList.rds"))
+     }
+ 
+
+# load historical data 
+setwd("/Users/home/Documents/Finanzen/R.investment/portfolio/wiki4_dach/")
+histDataList <- readRDS(file = paste0("./#rawData/", tail(dir("./#rawData/"), 1)))    
+     
+
+
+
+```
+
+```{r}
+
+library(PerformanceAnalytics)
+
+i=1; wikiStats_ls <- list()
+
+for (i in 1:length(histDataList)) {
+     
+     wikiReturn <- dailyReturn(histDataList[[i]]$Cl)
+
+     wikiStats_tmp <- rbind.data.frame(
+                              annReturn = table.AnnualizedReturns(wikiReturn)[1, ],
+                              annSharpe = table.AnnualizedReturns(wikiReturn)[3, ],
+                              drawdown = maxDrawdown(wikiReturn), 
+                              sortino = SortinoRatio(wikiReturn),                #sortino ratio : risk-adjusted return
+                              sterling = table.DrawdownsRatio(wikiReturn)[1, ],  #sterling ratio : risk-adjusted return
+                              ulcer = UlcerIndex(wikiReturn)                     #ulcer index : risk measure
+     ) 
+     
+     #wikiStats_tmp <- as.data.frame(base::t(wikiStats_tmp))
+     #wikiStats_tmp <- apply(wikiStats_tmp, 1, function (x) {round(x, digits=2)})
+     #names(wikiStats_tmp) <- names(histDataList)[i]
+     
+                 
+     wikiStats_ls[[i]] <- apply(wikiStats_tmp, 1, function (x) {round(x, digits=2)})#wikiStats_tmp
+     
+}
+
+wikiStats <- do.call(rbind, wikiStats_ls) %>%
+     as.data.frame() 
+rownames(wikiStats) <- names(histDataList)
+
+
+
+set.seed(1234)
+hc <- hclust(dist(wikiStats))
+plot(hc)
+
+mycl <- cutree(hc, h=max(hc$height/3.5))
+(mycl <- mycl[order(mycl)])
+
+
+#get prices
+histPricesList <- lapply(histDataList, function(x) x[,"Cl"])
+#histPricesList[['WFDMTRADES','WF0GOLDTDG')]]
+purrr::map(histPricesList, '[[', c('WFDMTRADES','WF0GOLDTDG'))
+lapply(histPricesList, c('WFDMTRADES','WF0GOLDTDG'))
+
+#names(histPricesList)
+histPrices <- do.call(merge.xts, histPricesList)
+colnames(histPrices) <- names(histPricesList)
+
+df <- as.data.frame(histPrices['2014-01-01::']) 
+df$date <- as.Date(rownames(df))
+df <- reshape2::melt(df, id.vars = c("date"))
+#df <- df[!is.na(df$value), ]
+
+ggplot(df, aes(x = date, y = value, color = variable)) +
+geom_line() +
+# Miscellaneous Formatting
+theme_bw() + ggtitle("Price Developments") +
+xlab("Date") + ylab("Pricen(Indexed 2000 = 1)") +
+scale_color_discrete(name = "Company")
+
+
+
+chart.CumReturns(wikiReturn)
+chart.RiskReturnScatter(wikiReturn)
+charts.PerformanceSummary(wikiReturn)
+?chart.Scatter
+
+
+
+
+```
+
+
+```{r, echo=FALSE}
+
+     #calculate efficient maximal return composition for each portfolio group
+     
+k <- 1; eff.alloc.lst <- list(); eff.maxdd.lst <- list()
+
+while (k <= length(return_lst)) {
+
+     
+          #efficient portfolio at high return
+          eff <- eff.frontier(returns=return_lst[[k]], short="no", max.allocation=0.2, 
+                              risk.premium.up=.5, risk.increment=.001)
+          
+          #eff.optimal.point <- eff[eff$sharpe==max(eff$sharpe),]
+          #t(round( eff[eff$sharpe == max(eff$sharpe),], 2))
+               
+          opt.return <- (0.5*( eff[eff$sharpe==max(eff$sharpe),]$'Exp.Return' +     #return at max. sharpe
+                                eff[eff$'Exp.Return'==max(eff$'Exp.Return'),]$'Exp.Return' ) )  #return at max. return
+               
+          eff.optimal.return <- head( eff[eff$'Exp.Return' >= opt.return, ], 1)
+          eff.alloc.lst[[k]] <- head( t(round(eff.optimal.return, 2)), -3)
+            
+          #conditional drawdown at risk constraint
+          eff.maxdd.lst[[k]] <- t(t(round(PMaxDD(price_lst[[k]], MaxDD = 0.18, softBudget = TRUE)@weights, 2)))
+           
+           k=k+1
+}   
+
+eff.alloc.1 <- as.matrix(do.call(rbind, eff.alloc.lst))
+tmp <- gregexpr("[0-9]+", rownames(eff.alloc.1))
+eff.alloc.1 <- cbind( as.numeric(unique(unlist(regmatches(rownames(eff.alloc.1), tmp)))), eff.alloc.1)
+colnames(eff.alloc.1) <- c("id", "eff")
+
+eff.alloc.2 <- as.matrix(do.call(rbind, eff.maxdd.lst))
+tmp <- gregexpr("[0-9]+", rownames(eff.alloc.2))
+eff.alloc.2 <- cbind( as.numeric(unique(unlist(regmatches(rownames(eff.alloc.2), tmp)))), eff.alloc.2)
+colnames(eff.alloc.2) <- c("id", "maxDD")
+
+eff.alloc <- merge(as.data.frame(eff.alloc.1), as.data.frame(eff.alloc.2), by="id")
+
+
+#add efficient allocation to wiki2_data
+data_wiki2 <- merge(data_wiki2, eff.alloc, by="id")
+#save complete wiki2_data
+write.csv(data_wiki2, file = paste("./#files/", Sys.Date(), "_", "data_wiki2.csv", sep=""), row.names = FALSE)     
+
+
+
+```
+
+
+
+```{r}
+
+
+#Use iconvlist to get all possible encodings:
+codepages <- setNames(iconvlist(), iconvlist())
+#read data using each of them  
+lst <- lapply(codepages, function(enc) try(read.csv2("tmp.csv", skip=20,
+                   fileEncoding=enc)))
+lst <- lapply(codepages, function(enc) try(readLines("tmp.csv",
+                   encoding=enc)))
+
+unique(do.call(rbind, sapply(lst, dim)))
+
+#try to guess encoding
+readr::guess_encoding("tmp.csv", n_max = 1000)
+
+
+```
+
+
