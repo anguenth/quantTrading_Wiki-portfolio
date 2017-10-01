@@ -2,9 +2,13 @@
 
 library(xts)
 library(pryr)
+library(ggplot2)
 library(magrittr)
 library(quantmod)
 library(PerformanceAnalytics)
+
+
+Sys.setenv(TZ='UTC')
 
 
 setClass("num.with.dots")
@@ -13,6 +17,34 @@ setClass("num.with.dots")
 setAs("character", "num.with.dots", 
       function(from) as.numeric(gsub(",", ".", gsub(".", "", from, fixed=TRUE), fixed=TRUE)))
 
+
+
+
+# # -----------------------------------------------------------------------
+
+getWiki <- function (wikiSymbol) {
+     
+     today <- paste0(
+          strsplit(as.character(Sys.Date()), "-")[[1]][3], ".",
+          strsplit(as.character(Sys.Date()), "-")[[1]][2], ".",
+          strsplit(as.character(Sys.Date()), "-")[[1]][1])
+     
+     wiki_url <- paste0("https://www.wikifolio.com/dynamic/de/de/invest/download?type=daily&name=",
+                        wikiSymbol, "&dateFrom=01.01.2010&dateTo=", today)
+     
+     tmp <- tempfile()
+     download.file(wiki_url, destfile=tmp, method="libcurl")
+     wiki_historic <- read.csv2(tmp, fileEncoding=c("UCS-4-INTERNAL"), skip=5, sep=";",
+                           col.names = c("Date", "Interval", "Op", "Cl", "Hi", "Lo"))
+     unlink(tmp)
+     
+     wiki_historic$Date %<>% lubridate::dmy_hms() 
+     wiki_historic <- wiki_historic[,-2] 
+     wiki_historic <- wiki_historic[ , c("Date", "Op", "Hi", "Lo", "Cl")]
+     wiki_historic <- as.xts(wiki_historic[, -1], order.by=wiki_historic[, 1])
+     
+     return(wiki_historic)
+}
 
 
 
