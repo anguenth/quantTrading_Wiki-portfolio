@@ -58,17 +58,17 @@ for (i in 1:length(start_date)) {
                                eff[eff$'Exp.Return'==max(eff$'Exp.Return'),]$'Exp.Return' ) )  #return at max. return
      eff.optimal.return <- head( eff[eff$'Exp.Return' >= opt.return[1], ], 1)
      
-     #max drawdown 10%
-     maxdd_10 <- portfolio.MaxDD(returns_set, MaxDD=0.075, softBudget = TRUE)
-     # max drawdown 20%
-     maxdd_20 <- portfolio.MaxDD(returns_set, MaxDD=0.10, softBudget = TRUE)
+     #max drawdown 5%
+     maxdd_5 <- portfolio.MaxDD(returns_set, MaxDD=0.05, softBudget = TRUE)
+     # max drawdown 10%
+     maxdd_10 <- portfolio.MaxDD(returns_set, MaxDD=0.10, softBudget = TRUE)
      
-     meth_name <- c("Opt Sharpe", "High Return", "Max DD 10%", "Max DD 20%")
+     meth_name <- c("Opt.Sharpe", "High.Return", "MaxDD.5%", "MaxDD.10%")
      portfolio_weights <- round(
           rbind.data.frame(eff.optimal.point[, 1:(ncol(eff.optimal.point)-3)], 
                            eff.optimal.return[, 1:(ncol(eff.optimal.return)-3)],
-                           maxdd_10,
-                           maxdd_20)
+                           maxdd_5,
+                           maxdd_10)
           , 2); rownames(portfolio_weights) <- meth_name
      
      portfolio_weights_list[[i]] <- portfolio_weights

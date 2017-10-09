@@ -4,18 +4,31 @@ source("utils.R")
 
 
 
-#refresh only favourites
+#keep only favourites
 favsOnly <- TRUE
+#keep only money manager
+moneyOnly <- TRUE
+#keep only active manager
+activeOnly <- TRUE
+
 
 # Download Historical Data for Wikis --------------------------------------
 
      
 #read list containing Wikifolios (Name, ISIN, Symbol)
 wikiList <- read.csv("./tables/wikiList.csv", sep=",", 
-                       colClasses = c(rep("character", 3), rep("numeric", 5)))
+                       colClasses = c(rep("character", 3), rep("numeric", 6), rep("character", 1)))
 
 if (favsOnly == TRUE) {
      wikiList <- wikiList[complete.cases(wikiList[, "Punkte"]), ]
+}
+
+if (moneyOnly == TRUE) {
+     wikiList <- wikiList[wikiList$MoneyManager == 1, ]
+}
+
+if (activeOnly == TRUE) {
+     wikiList <- wikiList[wikiList$Aktivitaet == 1, ]
 }
 
 #create short Wiki symbols for downloading
@@ -34,4 +47,5 @@ saveRDS(wikiList,
         file = paste0("./data/wikiList.rds"))
 saveRDS(wiki_historic_list,
         file = paste0("./data/wiki_historic_list.rds"))
+
      

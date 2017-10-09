@@ -6,6 +6,9 @@ library(ggplot2)
 library(magrittr)
 library(quantmod)
 library(PerformanceAnalytics)
+library(quadprog)
+library(corpcor)
+library(Rglpk)
 
 
 Sys.setenv(TZ='UTC')
@@ -35,12 +38,12 @@ getWiki <- function (wikiSymbol) {
      tmp <- tempfile()
      download.file(wiki_url, destfile=tmp, method="libcurl")
      wiki_historic <- read.csv2(tmp, fileEncoding=c("UCS-4-INTERNAL"), skip=5, sep=";",
-                           col.names = c("Date", "Interval", "Op", "Cl", "Hi", "Lo"))
+                           col.names = c("Date", "Interval", "Open", "Close", "High", "Low"))
      unlink(tmp)
      
      wiki_historic$Date %<>% lubridate::dmy_hms() 
      wiki_historic <- wiki_historic[,-2] 
-     wiki_historic <- wiki_historic[ , c("Date", "Op", "Hi", "Lo", "Cl")]
+     wiki_historic <- wiki_historic[ , c("Date", "Open", "High", "Low", "Close")]
      wiki_historic <- as.xts(wiki_historic[, -1], order.by=wiki_historic[, 1])
      
      return(wiki_historic)
