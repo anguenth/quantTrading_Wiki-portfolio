@@ -28,7 +28,7 @@ portfolio_weights <- do.call(rbind, portfolio_weights_list)
 wiki_returns_filt <- wiki_returns[, colSums(portfolio_weights) >= 0.05]
 #wiki_returns_filt <- wiki_returns_filt[rowSums(is.na(wiki_returns_filt)) == 0, ]
 
-#too cluttered!!!!!!!!!!!!!!!
+#returns of selected wikis
 PerformanceAnalytics::chart.CumReturns(
      wiki_returns_filt,
      main = "Selected Wikis",
