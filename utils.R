@@ -1,5 +1,6 @@
 
 
+
 library(xts)
 library(pryr)
 library(ggplot2)
@@ -11,16 +12,8 @@ library(corpcor)
 library(Rglpk)
 
 
+
 Sys.setenv(TZ='UTC')
-
-
-setClass("num.with.dots")
-# setAs("character", "num.with.dots", 
-#       function(from) as.numeric(gsub(",", "", from, fixed=TRUE) ) )
-setAs("character", "num.with.dots", 
-      function(from) as.numeric(gsub(",", ".", gsub(".", "", from, fixed=TRUE), fixed=TRUE)))
-
-
 
 
 # # -----------------------------------------------------------------------

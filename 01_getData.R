@@ -1,14 +1,15 @@
 
 
+
 source("utils.R")
 
 
 
-#keep only favourites
+#keep favourites only / TraderValue complete cases
 favsOnly <- TRUE
-#keep only money manager
+#keep good money manager only
 moneyOnly <- TRUE
-#keep only active manager
+#keep active manager only
 activeOnly <- TRUE
 
 
@@ -17,10 +18,10 @@ activeOnly <- TRUE
      
 #read list containing Wikifolios (Name, ISIN, Symbol)
 wikiList <- read.csv("./tables/wikiList.csv", sep=",", 
-                       colClasses = c(rep("character", 3), rep("numeric", 6), rep("character", 1)))
+                       colClasses = c(rep("character", 3), rep("numeric", 9), rep("character", 1)))
 
 if (favsOnly == TRUE) {
-     wikiList <- wikiList[complete.cases(wikiList[, "Punkte"]), ]
+     wikiList <- wikiList[complete.cases(wikiList[, "TraderValue"]), ]
 }
 
 if (moneyOnly == TRUE) {
