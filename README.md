@@ -1,7 +1,3 @@
----
-title: "Untitled"
-output: html_document
----
 
 
 # Risk-adjusted portfolio calculation with Wikifolios
