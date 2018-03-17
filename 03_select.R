@@ -7,7 +7,7 @@ source("utils.R")
 # Strategy selection and capital to invest
 
 p <- menu(c("conservative", "moderate"), 
-                 graphics=TRUE, title="Which portfolio strategy should be calculated:")
+                 graphics=TRUE, title="Select portfolio strategy to calculate:")
 strategy <- c("conservative", "moderate")[p]
 capital <- c(50000, 110000)[p]
 
@@ -15,7 +15,7 @@ capital <- c(50000, 110000)[p]
 
 # LOAD --------------------------------------------------------------------
 
-
+wikiListFull <- readRDS(file = "./data/wikiListFull.rds")
 wikiList <- readRDS(file = "./data/wikiList.rds")
 wiki_historic_list <- readRDS(file = "./data/wiki_historic_list.rds")
 
@@ -82,7 +82,7 @@ portfolio_weights_ext[is.na(portfolio_weights_ext)] <- 0
 
 #extend portfolio df with information from wikiList
 #correct median weights with TraderValues
-portfolio_weights_final <- merge(portfolio_weights_ext, wikiList, by="ISIN") %>%
+portfolio_weights_final <- merge(portfolio_weights_ext, wikiListFull, by="ISIN") %>%
      dplyr::mutate(., Median = round(Median*TraderValue, 2), 
                    Median1 = round(Median1*TraderValue, 2),
                    Target = capital*(Median+Median+Median1)/3
@@ -93,10 +93,11 @@ portfolio_weights_final %<>%
      #removes all position smaller than 2,000
      dplyr::mutate(., Target = signif(ifelse(Target >= 2000, Target, 0), 2)) %>%
      dplyr::select(-Punkte, -MoneyManager, -TreueAnleger, -Aktivitaet, -`Bad.Perfolio`, -InvKapital,
-                   -Liquidationskennzahl, -Evaluation, -TraderValue, -Strategy, -Symbol, -`Symbol.short`)
+                   -Liquidationskennzahl, -Evaluation, -TraderValue, -Strategy, -Symbol)
 
-portfolio_weights_final <- portfolio_weights_final[order(portfolio_weights_final[,'Target'], decreasing=TRUE), ]
-
+portfolio_weights_final <- portfolio_weights_final[ order(portfolio_weights_final[,'Target'],
+                                                          portfolio_weights_final[,'Current'], 
+                                                          decreasing = TRUE), ]
 View(portfolio_weights_final)
 
 #save final portfolio

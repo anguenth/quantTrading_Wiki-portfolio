@@ -17,19 +17,19 @@ activeOnly <- TRUE
 
      
 #read list containing Wikifolios (Name, ISIN, Symbol)
-wikiList <- read.csv("./tables/wikiList.csv", sep=",", 
+wikiListFull <- read.csv("./tables/wikiList.csv", sep=",", 
                        colClasses = c(rep("character", 3), rep("numeric", 9), rep("character", 1)))
 
 if (favsOnly == TRUE) {
-     wikiList <- wikiList[complete.cases(wikiList[, "TraderValue"]), ]
+     wikiList <- wikiListFull[complete.cases(wikiList[, "TraderValue"]), ]
 }
 
 if (moneyOnly == TRUE) {
-     wikiList <- wikiList[wikiList$MoneyManager == 1, ]
+     wikiList <- wikiListFull[wikiList$MoneyManager == 1, ]
 }
 
 if (activeOnly == TRUE) {
-     wikiList <- wikiList[wikiList$Aktivitaet == 1, ]
+     wikiList <- wikiListFull[wikiList$Aktivitaet == 1, ]
 }
 
 #create short Wiki symbols for downloading
@@ -44,6 +44,8 @@ names(wiki_historic_list) <- wikiList$ISIN
 
 # SAVE --------------------------------------------------------------------
 
+saveRDS(wikiListFull,
+        file = paste0("./data/wikiListFull.rds"))
 saveRDS(wikiList,
         file = paste0("./data/wikiList.rds"))
 saveRDS(wiki_historic_list,
